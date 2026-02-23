@@ -1,13 +1,13 @@
 # MySQL Replication 시나리오
 
 > **Spring Boot + MySQL + Docker** 환경에서 복제(Replication) 구조를 직접 구현하고 검증하는 프로젝트
-> 발표용 데모 시나리오는 [DEMO.md](./DEMO.md) 참고
+> 발표용 데모 시나리오는 [DEMO.md](./MySQL-Replication/DEMO.md) 참고
 
 ---
 
 ## 개요
 
-이커머스 주문 서비스의 DB 병목 문제를 해결하기 위해 MySQL 복제 구조를 도입한 시나리오입니다.
+이커머스 주문 서비스의 DB 병목 문제를 해결하기 위해 MySQL 복제 구조를 도입한 시나리오입니다. <br/>
 주문 조회 트래픽(70%)을 Replica로 분산하고, 장애 시 데이터 유실을 방지하는 것이 목표입니다.
 
 ### 핵심 기술
@@ -22,32 +22,29 @@
 ---
 
 ## 아키텍처
+<img width="1144" height="585" alt="image" src="https://github.com/user-attachments/assets/01304a74-00c7-4f7b-87eb-28e3c320e4bf" />
+
 
 ```
 [ Spring Boot App ]
         │
-        ├── 쓰기 @Transactional              ──→ [ Source DB :3308 ]
+        ├── 쓰기 @Transactional ─────────────────→ [ Source DB :3308  ]
         │                                               │
         └── 읽기 @Transactional(readOnly=true) ──→ [ Replica DB :3309 ]
                                                         │
-                             ← Binary Log (RBR) + GTID + Semi-Sync ─┘
+                             ← Binary Log (RBR) + GTID + Semi-Sync ──┘
 ```
 
 ### 읽기/쓰기 라우팅 흐름
+| 구분 | 🟢 Read-Only (읽기 전용) | 🔴 Read-Write (읽기/쓰기) |
+| :--- | :--- | :--- |
+| **분기 조건** | `isCurrentTransactionReadOnly() = true` ⭐ | `isCurrentTransactionReadOnly() = false` ⭐ |
+| **대상 DB** | Replica DataSource (3309) | Source DataSource (3308) |
+| **커넥션 풀** | HikariCP Replica 풀에서 커넥션 반환 | HikariCP Source 풀에서 커넥션 반환 |
+| **쿼리 실행** | JdbcTemplate 쿼리 실행 (SELECT) | JdbcTemplate 쿼리 실행 (INSERT/UPDATE/DELETE) |
+| **DB 응답** | MySQL Replica Server (3309) 응답 | MySQL Source Server (3308) 응답 |
+| **종료 및 반납**| 트랜잭션 종료 → Replica 커넥션 풀 반납 | 트랜잭션 종료 → Source 커넥션 풀 반납 |
 
-```
-요청
- │
- ▼
-LazyConnectionDataSourceProxy   ← 실제 쿼리 직전에 커넥션 획득 (Lazy)
- │
- ▼
-RoutingDataSource
- │  TransactionSynchronizationManager.isCurrentTransactionReadOnly()
- │
- ├── true  → Replica DataSource (3309)
- └── false → Source DataSource  (3308)
-```
 
 ### 세미싱크 동작 흐름
 
