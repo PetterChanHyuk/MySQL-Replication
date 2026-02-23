@@ -1,0 +1,72 @@
+version: "3.8"
+
+services:
+    # ── Source DB (쓰기 / 3306) ─────────────────────────────
+    source:
+        image: mysql:8.0
+        container_name: mysql-source2
+        ports:
+            - "3308:3306"
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: orders_db
+        volumes:
+            - ./docker/source.cnf:/etc/mysql/conf.d/custom.cnf
+            - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql # 자동 DDL 실행
+            - source-data:/var/lib/mysql
+        networks:
+            - replication-net
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "mysqladmin",
+                    "ping",
+                    "-h",
+                    "localhost",
+                    "-uroot",
+                    "-proot",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # ── Replica DB (읽기 / 3307) ────────────────────────────
+    replica:
+        image: mysql:8.0
+        container_name: mysql-replica2
+        ports:
+            - "3309:3306"
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: orders_db
+        volumes:
+            - ./docker/replica.cnf:/etc/mysql/conf.d/custom.cnf
+            - replica-data:/var/lib/mysql
+        networks:
+            - replication-net
+        depends_on:
+            source:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "mysqladmin",
+                    "ping",
+                    "-h",
+                    "localhost",
+                    "-uroot",
+                    "-proot",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+volumes:
+    source-data:
+    replica-data:
+
+networks:
+    replication-net:
+        driver: bridge

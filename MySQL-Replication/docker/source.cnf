@@ -1,0 +1,19 @@
+[mysqld]
+# ── 기본 설정 ───────────────────────────────────────────
+server-id=1
+log-bin=mysql-bin
+
+# ── RBR (Row Based Replication) ─────────────────────────
+binlog-format=ROW
+binlog-row-image=FULL
+
+# ── GTID ────────────────────────────────────────────────
+gtid-mode=ON
+enforce-gtid-consistency=ON
+
+# ── Semi-Sync 플러그인 로드만 (활성화는 setup 스크립트에서) ──
+plugin-load-add=semisync_source.so
+
+# ── 기타 ────────────────────────────────────────────────
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci

@@ -1,0 +1,20 @@
+[mysqld]
+# ── 기본 설정 ───────────────────────────────────────────
+server-id=2
+
+# ── GTID ────────────────────────────────────────────────
+gtid-mode=ON
+enforce-gtid-consistency=ON
+
+# ── Semi-Sync 플러그인 로드만 (활성화는 setup 스크립트에서) ──
+plugin-load-add=semisync_replica.so
+
+# ── 읽기 전용 ────────────────────────────────────────────
+# super-read-only 제거: 초기화 단계에서 CREATE DATABASE 등 실행 불가 오류 발생
+# read-only=ON 으로만 설정 (일반 계정 쓰기 방지는 충분)
+read-only=ON
+
+# ── 기타 ────────────────────────────────────────────────
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+relay-log=relay-bin
