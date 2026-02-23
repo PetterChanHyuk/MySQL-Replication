@@ -1,6 +1,6 @@
 # MySQL Replication 시나리오
 
-> **Spring Boot + MySQL + Docker** 환경에서 복제(Replication) 구조를 직접 구현하고 검증하는 프로젝트
+> **Spring Boot + MySQL + Docker** 환경에서 복제(Replication) 구조를 직접 구현하고 검증하는 프로젝트 <br>
 > 발표용 데모 시나리오는 [DEMO.md](./MySQL-Replication/DEMO.md) 참고
 
 ---
